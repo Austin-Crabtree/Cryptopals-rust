@@ -1,7 +1,4 @@
 // TODO Add documentation to code in file
-
-extern crate base64;
-
 use base64::DecodeError;
 
 pub fn b64_encode(bytes: &Vec<u8>) -> String {

@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 
 pub fn english_score(bytes: &Vec<u8>) -> f32 {
@@ -50,29 +51,30 @@ pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &
     if bin_seq1.len() != bin_seq2.len() {
         return Err("Inputs need to have the same length");
     }
-    Ok(bin_seq1
+
+    let differences: Vec<u8> = bin_seq1
         .iter()
         .zip(bin_seq2.iter())
-        .map(|(a, b)| a ^ b)
-        .fold(0u32, |a, b| a + u32::from(nonzero_bits_count(b))))
-}
+        .map(|(x, y)| x ^ y)
+        .collect();
 
-fn nonzero_bits_count(mut u: u8) -> u8 {
-    let mut res = 0u8;
-    for _ in 0..8 {
-        res += u % 2;
-        u >>= 1;
-    }
-    res
+    let ones: Vec<u32> = differences.iter().map(|x| x.count_ones()).collect();
+
+    let distances: u32 = ones.iter().sum();
+
+    Ok(distances)
 }
 
 pub fn normalized_hamming_distance(input: &Vec<u8>, keysize: usize) -> f32 {
-    let chunks: Vec<&[u8]> = input.chunks(keysize).take(4).collect();
+    let chunks = input.chunks(keysize).combinations(2);
+
     let mut distance = 0f32;
-    for i in 0..4 {
-        for j in i..4 {
-            distance += hamming_distance(&chunks[i].to_vec(), &chunks[j].to_vec()).unwrap() as f32;
-        }
+
+    for chunk in chunks.into_iter() {
+        distance += hamming_distance(&chunk[0].to_vec(), &chunk[1].to_vec()).unwrap() as f32;
     }
+
+    distance /= 6f32;
+
     distance / keysize as f32
 }
