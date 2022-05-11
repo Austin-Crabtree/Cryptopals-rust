@@ -1,11 +1,12 @@
 extern crate hex;
 
 mod b64;
+mod utils;
 mod xor;
 
 #[cfg(test)]
 mod tests {
-    use crate::{b64, xor};
+    use crate::{b64, utils, xor};
     use std::fs;
 
     #[test]
@@ -72,5 +73,13 @@ mod tests {
         let result = xor::repeating_key_xor(&plaintext, &key);
         let result = hex::encode(result);
         assert_eq!(result, answer);
+    }
+
+    #[test]
+    fn test_hamming_distance() {
+        let seq1 = "this is a test".as_bytes().to_vec();
+        let seq2 = "wokka wokka!!!".as_bytes().to_vec();
+        let dist = utils::hamming_distance(&seq1, &seq2).unwrap();
+        assert_eq!(dist, 37);
     }
 }
