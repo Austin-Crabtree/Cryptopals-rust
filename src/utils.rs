@@ -91,3 +91,32 @@ pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &
 
     Ok(distances)
 }
+
+// CryptoPals Set 2 Challenge 9
+pub fn pkcs_7_pad(data: &Vec<u8>, block_size: usize) -> Vec<u8> {
+    let mut padded_data = data.clone();
+    let pad_len = block_size - data.len() % block_size;
+    padded_data.append(vec![pad_len as u8; pad_len].as_mut());
+    padded_data
+}
+
+fn is_pkcs_7_padded(data: &Vec<u8>) -> bool {
+    let pad_len = data[data.len() - 1];
+    let padding = data[data.len() - pad_len as usize..data.len() - 1].to_vec();
+    for pad_byte in padding.iter() {
+        if *pad_byte != pad_len {
+            return false;
+        }
+    }
+    true
+}
+
+pub fn pkcs_7_unpad(data: &Vec<u8>) -> Vec<u8> {
+    let mut unpadded_data: Vec<u8> = Vec::new();
+    if !is_pkcs_7_padded(&data) {
+        return data.clone();
+    }
+    let pad_len = data[data.len() - 1];
+    unpadded_data = data[0..data.len() - pad_len as usize].to_vec();
+    unpadded_data
+}
