@@ -1,16 +1,23 @@
 // TODO Add documentation to code in file
 
+// TODO Change code to use decipher message instead of a Hashmap
+
 use crate::utils;
-// use itertools::Itertools;
-use crate::utils::normalized_hamming_distance;
-use std::collections::HashMap;
+use crate::utils::{hamming_distance, DecipheredMessage};
+use itertools::Itertools;
 use utils::english_score;
 
+// CryptoPals Set 1 Challenge 2
+/// Xor to Vec of bytes with the same length. Then
+/// return the resulting Vec of bytes
 pub fn fixed_xor(plain: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     let iter = plain.iter().zip(key.iter());
     iter.map(|x| x.0 ^ x.1).collect()
 }
 
+// TODO Change this function to use map of over the data vector instead of a for loop
+/// Xor a Vec of bytes with a single byte. Then
+/// return the resulting Vec of bytes
 pub fn single_byte_xor(data: &Vec<u8>, key: u8) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::new();
     for byte in data.iter() {
@@ -19,42 +26,52 @@ pub fn single_byte_xor(data: &Vec<u8>, key: u8) -> Vec<u8> {
     result
 }
 
-pub fn single_byte_bruteforce(cipher: &Vec<u8>) -> HashMap<String, String> {
-    let mut candidates: Vec<HashMap<String, String>> = Vec::new();
+// CryptoPals Set 1 Challenge 3
+/// Using cryptanalysis find the byte used to xor encipher the ciphertext.
+/// Loop through all possible bytes, and at each bytes decipher with the
+/// candidate key, obtain a score of how close to an english word is the
+/// plaintext and then push all those results to a vector of candidates.
+/// Finally sort for the highest english_score and return the result.
+pub fn single_byte_bruteforce(cipher: &Vec<u8>) -> DecipheredMessage {
+    let mut candidates: Vec<DecipheredMessage> = Vec::new();
 
     for key in 0..=255u8 {
         let plaintext_bytes = single_byte_xor(&cipher, key);
-        let plaintext_candidate = String::from_utf8_lossy(&plaintext_bytes);
         let candidate_score = english_score(&plaintext_bytes);
-        let result = HashMap::from([
-            ("key".to_string(), key.to_string()),
-            ("score".to_string(), candidate_score.to_string()),
-            (
-                "plaintext".to_string(),
-                plaintext_candidate.parse().unwrap(),
-            ),
-        ]);
+        let result = DecipheredMessage {
+            bytes: plaintext_bytes,
+            key: Vec::from([key]),
+            score: candidate_score,
+        };
 
         candidates.push(result);
     }
 
-    candidates.sort_by(|a, b| b["score"].cmp(&a["score"]));
-    // candidates.pop().unwrap()
+    candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+
     candidates.swap_remove(0)
 }
 
-pub fn find_element_with_single_byte_xor(data: Vec<Vec<u8>>) -> HashMap<String, String> {
-    let mut candidates: Vec<HashMap<String, String>> = Vec::new();
+// CryptoPals Set 1 Challenge 4
+/// Given a vector of byte vectors find the singular vector that was enciphered
+/// with a single byte xor operation. Using the single_byte_bruteforce function
+/// find the top score for each Vec and then return the top result of all Vecs.
+pub fn find_element_with_single_byte_xor(data: Vec<Vec<u8>>) -> DecipheredMessage {
+    let mut candidates: Vec<DecipheredMessage> = Vec::new();
     for data_element in data.iter() {
         let result = single_byte_bruteforce(data_element);
         candidates.push(result);
     }
 
-    candidates.sort_by(|a, b| b["score"].cmp(&a["score"]));
+    candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
 
     candidates.swap_remove(0)
 }
 
+// CryptoPals Set 1 Challenge 5
+/// Xor encipher a Vec of bytes using a key of bytes. Each byte in the Vec
+/// to encipher is xor'ed with a byte from key, with the key bytes rotating
+/// in a ring fashion.
 pub fn repeating_key_xor(plain: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     let mut cipher: Vec<u8> = Vec::new();
     let key_size = key.len();
@@ -67,51 +84,51 @@ pub fn repeating_key_xor(plain: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     cipher
 }
 
-fn generate_key_candidate_sizes(data: &Vec<u8>) -> Vec<u8> {
-    let mut distances: Vec<(usize, f32)> = Vec::new();
+// CryptoPals Set 1 Challenge 6
+pub fn breaking_repeating_xor(data: &Vec<u8>) -> DecipheredMessage {
+    let mut candidate_message = DecipheredMessage::new();
 
-    for keysize in 2..41 {
-        distances.push((keysize, normalized_hamming_distance(&data, keysize)));
+    let mut normalized_distances: Vec<(u32, u32)> = Vec::new();
+    for keysize in 2..41u32 {
+        let chunks: Vec<&[u8]> = data.chunks(keysize as usize).take(4).collect();
+        let pairs = chunks.into_iter().combinations(2).map(|x| x.to_vec());
+        let mut distance = 0u32;
+        for x in pairs {
+            distance += hamming_distance(&x[0].to_vec(), &x[1].to_vec()).unwrap();
+        }
+        distance /= 6u32;
+
+        let normalized_distance = distance / keysize;
+        normalized_distances.push((keysize, normalized_distance));
     }
 
-    distances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    normalized_distances.sort_by(|x, y| x.1.cmp(&y.1));
 
-    let possible_key_sizes: Vec<u8> = distances.iter().take(3).map(|x| x.0 as u8).collect();
-    possible_key_sizes
-}
+    let possible_keysizes: Vec<&(u32, u32)> = normalized_distances.iter().take(3).collect();
 
-pub fn break_repeating_xor(data: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
-    let key_candidate_sizes = generate_key_candidate_sizes(&data);
-    let mut possible_plaintexts: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
-
-    for keysize in key_candidate_sizes.iter() {
+    for keysize in possible_keysizes.iter() {
         let mut key: Vec<u8> = Vec::new();
 
-        for i in 0..*keysize as usize {
+        for i in 0..keysize.0 {
             let mut block: Vec<u8> = Vec::new();
 
-            for j in (i..data.len()).step_by(*keysize as usize) {
-                block.push(data[j]);
+            for j in (i..data.len() as u32).step_by(keysize.0 as usize) {
+                let byte: u8 = data.get(j as usize).unwrap().clone();
+                block.push(byte);
             }
-
-            key.push(single_byte_bruteforce(&block)["key"].parse::<u8>().unwrap());
+            key.push(single_byte_bruteforce(&block).key[0]);
         }
-
-        possible_plaintexts.push((repeating_key_xor(&data, &key), key));
+        let candidate_bytes = repeating_key_xor(&data, &key);
+        let candidate_score = english_score(&candidate_bytes);
+        let candidate = DecipheredMessage {
+            bytes: candidate_bytes,
+            key,
+            score: candidate_score,
+        };
+        if candidate.score > candidate_message.score {
+            candidate_message = candidate;
+        }
     }
 
-    let mut scores: Vec<(Vec<u8>, Vec<u8>, f32)> = Vec::new();
-
-    for plaintext in possible_plaintexts.iter() {
-        scores.push((
-            plaintext.0.clone(),
-            plaintext.1.clone(),
-            english_score(&plaintext.0),
-        ));
-    }
-
-    scores.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
-
-    let winner = scores.swap_remove(0);
-    (winner.0, winner.1)
+    candidate_message
 }

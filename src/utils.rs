@@ -1,5 +1,22 @@
-use itertools::Itertools;
+// TODO Add documentation to this file
+
 use std::collections::HashMap;
+
+pub struct DecipheredMessage {
+    pub bytes: Vec<u8>,
+    pub key: Vec<u8>,
+    pub score: f32,
+}
+
+impl DecipheredMessage {
+    pub fn new() -> DecipheredMessage {
+        DecipheredMessage {
+            bytes: Vec::new(),
+            key: Vec::new(),
+            score: -99999f32,
+        }
+    }
+}
 
 pub fn english_score(bytes: &Vec<u8>) -> f32 {
     let char_freq = HashMap::from([
@@ -47,6 +64,16 @@ pub fn english_score(bytes: &Vec<u8>) -> f32 {
     score
 }
 
+///! Given two byte vectors calculate the hamming distance between them.
+///! The hamming distance is the amount of bits that need to be flipped
+///! for each byte to match. Example "this is a test" and "wokka wokka!!!"
+///! have a hamming distance of 37.
+///! ```
+///! let seq1 = "this is a test".as_bytes().to_vec();
+///! let seq2 = "wokka wokka!!!".as_bytes().to_vec();
+///! let dist = utils::hamming_distance(&seq1, &seq2).unwrap();
+///! assert_eq!(dist, 37);
+///! ```
 pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &'static str> {
     if bin_seq1.len() != bin_seq2.len() {
         return Err("Inputs need to have the same length");
@@ -63,18 +90,4 @@ pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &
     let distances: u32 = ones.iter().sum();
 
     Ok(distances)
-}
-
-pub fn normalized_hamming_distance(input: &Vec<u8>, keysize: usize) -> f32 {
-    let chunks = input.chunks(keysize).combinations(2);
-
-    let mut distance = 0f32;
-
-    for chunk in chunks.into_iter() {
-        distance += hamming_distance(&chunk[0].to_vec(), &chunk[1].to_vec()).unwrap() as f32;
-    }
-
-    distance /= 6f32;
-
-    distance / keysize as f32
 }
