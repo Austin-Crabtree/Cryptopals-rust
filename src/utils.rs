@@ -64,16 +64,16 @@ pub fn english_score(bytes: &Vec<u8>) -> f32 {
     score
 }
 
-///! Given two byte vectors calculate the hamming distance between them.
-///! The hamming distance is the amount of bits that need to be flipped
-///! for each byte to match. Example "this is a test" and "wokka wokka!!!"
-///! have a hamming distance of 37.
-///! ```
-///! let seq1 = "this is a test".as_bytes().to_vec();
-///! let seq2 = "wokka wokka!!!".as_bytes().to_vec();
-///! let dist = utils::hamming_distance(&seq1, &seq2).unwrap();
-///! assert_eq!(dist, 37);
-///! ```
+/// Given two byte vectors calculate the hamming distance between them.
+/// The hamming distance is the amount of bits that need to be flipped
+/// for each byte to match. Example "this is a test" and "wokka wokka!!!"
+/// have a hamming distance of 37.
+/// ```
+/// let seq1 = "this is a test".as_bytes().to_vec();
+/// let seq2 = "wokka wokka!!!".as_bytes().to_vec();
+/// let dist = utils::hamming_distance(&seq1, &seq2).unwrap();
+/// assert_eq!(dist, 37);
+/// ```
 pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &'static str> {
     if bin_seq1.len() != bin_seq2.len() {
         return Err("Inputs need to have the same length");
@@ -93,11 +93,11 @@ pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &
 }
 
 // CryptoPals Set 2 Challenge 9
-pub fn pkcs_7_pad(data: &Vec<u8>, block_size: usize) -> Vec<u8> {
+pub fn pkcs_7_pad(data: &Vec<u8>, block_size: &usize) -> Vec<u8> {
     let mut padded_data = data.clone();
     let pad_len = block_size - data.len() % block_size;
     padded_data.append(vec![pad_len as u8; pad_len].as_mut());
-    padded_data
+    padded_data.to_vec()
 }
 
 fn is_pkcs_7_padded(data: &Vec<u8>) -> bool {
@@ -111,10 +111,18 @@ fn is_pkcs_7_padded(data: &Vec<u8>) -> bool {
     true
 }
 
+pub fn check_pkcs_7_padding(data: &Vec<u8>) -> Result<Vec<u8>, String> {
+    if !is_pkcs_7_padded(&data) {
+        return Err("Data not PKCS#7 padded".to_string());
+    }
+
+    Ok(pkcs_7_unpad(&data))
+}
+
 pub fn pkcs_7_unpad(data: &Vec<u8>) -> Vec<u8> {
     let mut unpadded_data: Vec<u8> = Vec::new();
     if !is_pkcs_7_padded(&data) {
-        return data.clone();
+        return data.to_vec();
     }
     let pad_len = data[data.len() - 1];
     unpadded_data = data[0..data.len() - pad_len as usize].to_vec();

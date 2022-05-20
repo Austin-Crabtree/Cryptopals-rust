@@ -1,3 +1,4 @@
+// TODO Need to add documentation to this file
 use crate::utils::{pkcs_7_pad, pkcs_7_unpad};
 use crate::xor::repeating_key_xor;
 use openssl::symm::{Cipher, Crypter, Mode};
@@ -90,7 +91,7 @@ pub fn decrypt_aes_cbc(
 
 pub fn encrypt_aes_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, initial_iv: &Vec<u8>) -> Vec<u8> {
     let mut ciphertext: Vec<u8> = Vec::new();
-    let padded_data = pkcs_7_pad(&plaintext, AES_BLOCK_SIZE);
+    let padded_data = pkcs_7_pad(&plaintext, &AES_BLOCK_SIZE);
     for i in (0..plaintext.len()).step_by(AES_BLOCK_SIZE) {
         let block = padded_data[i..i + AES_BLOCK_SIZE].to_vec();
         // let padded_data = pkcs_7_pad(&block, AES_BLOCK_SIZE);
@@ -105,6 +106,7 @@ pub fn encrypt_aes_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, initial_iv: &Vec<u8>)
     ciphertext
 }
 
+// TODO Acting non-deterministic need to fix that should get it 100% of the time.
 pub fn aes_encryption_oracle(data: &mut Vec<u8>) -> (String, String) {
     let mut rng = thread_rng();
     let key: [u8; AES_BLOCK_SIZE] = rng.gen();
