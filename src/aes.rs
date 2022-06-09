@@ -15,9 +15,10 @@ pub fn decrypt_aes_ecb(ciphertext: &Vec<u8>, key: &Vec<u8>, iv: Option<&[u8]>) -
         .update(&ciphertext[..], decrypted.as_mut_slice())
         .unwrap();
 
-    let mut result = vec![0u8; ciphertext.len()];
-    result = decrypted[0..ciphertext.len()].to_vec();
-    result
+    // let mut result = vec![0u8; ciphertext.len()];
+    // result = decrypted[0..ciphertext.len()].to_vec();
+    // result
+    decrypted[0..ciphertext.len()].to_vec()
 }
 
 pub fn encrypt_aes_ecb(plaintext: &Vec<u8>, key: &Vec<u8>, iv: Option<&[u8]>) -> Vec<u8> {
@@ -27,11 +28,13 @@ pub fn encrypt_aes_ecb(plaintext: &Vec<u8>, key: &Vec<u8>, iv: Option<&[u8]>) ->
         .update(&plaintext[..], encrypted.as_mut_slice())
         .unwrap();
 
-    let mut result = vec![0u8; plaintext.len()];
-    result = encrypted[0..plaintext.len()].to_vec();
-    result
+    // let mut result = vec![0u8; plaintext.len()];
+    // result = encrypted[0..plaintext.len()].to_vec();
+    // result
+    encrypted[0..plaintext.len()].to_vec()
 }
 
+// TODO debug this to see if it is the reason why my decryption oracle is broken
 fn is_aes_ecb(data: &Vec<u8>) -> bool {
     let chunks: Vec<&[u8]> = data.chunks(AES_BLOCK_SIZE).collect();
     let mut blocks: HashSet<&[u8]> = HashSet::new();
@@ -107,6 +110,8 @@ pub fn encrypt_aes_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, initial_iv: &Vec<u8>)
 }
 
 // TODO Acting non-deterministic need to fix that should get it 100% of the time.
+// Essentially the problem seems to revolve around the fact it is miss classifying CBC mode for ECB mode.
+// Which will then cause it to incorrectly decrypt the value (because it chooses a ECB decrypt mode).
 pub fn aes_encryption_oracle(data: &mut Vec<u8>) -> (String, String) {
     let mut rng = thread_rng();
     let key: [u8; AES_BLOCK_SIZE] = rng.gen();

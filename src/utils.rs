@@ -66,14 +66,7 @@ pub fn english_score(bytes: &Vec<u8>) -> f32 {
 
 /// Given two byte vectors calculate the hamming distance between them.
 /// The hamming distance is the amount of bits that need to be flipped
-/// for each byte to match. Example "this is a test" and "wokka wokka!!!"
-/// have a hamming distance of 37.
-/// ```
-/// let seq1 = "this is a test".as_bytes().to_vec();
-/// let seq2 = "wokka wokka!!!".as_bytes().to_vec();
-/// let dist = utils::hamming_distance(&seq1, &seq2).unwrap();
-/// assert_eq!(dist, 37);
-/// ```
+/// for each byte to match.
 pub fn hamming_distance(bin_seq1: &Vec<u8>, bin_seq2: &Vec<u8>) -> Result<u32, &'static str> {
     if bin_seq1.len() != bin_seq2.len() {
         return Err("Inputs need to have the same length");
